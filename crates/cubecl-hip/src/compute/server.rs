@@ -1,3 +1,4 @@
+use cubecl_core::server::Parameter;
 use cubecl_cpp::formatter::format_cpp;
 
 use crate::runtime::HipCompiler;
@@ -149,7 +150,7 @@ impl ComputeServer for HipServer {
         &mut self,
         kernel: Self::Kernel,
         count: CubeCount,
-        bindings: Vec<server::Binding>,
+        bindings: Vec<Parameter<HipStorage>>,
         mode: ExecutionMode,
     ) {
         let mut kernel_id = kernel.id();
@@ -186,12 +187,13 @@ impl ComputeServer for HipServer {
 
         let resources = bindings
             .into_iter()
-            .map(|binding| {
-                ctx.memory_management.get_resource(
+            .map(|param| match param {
+                server::Parameter::Bound(binding) => ctx.memory_management.get_resource(
                     binding.memory,
                     binding.offset_start,
                     binding.offset_end,
-                )
+                ),
+                server::Parameter::Raw(r) => r
             })
             .collect::<Vec<_>>();
 
@@ -349,7 +351,7 @@ impl HipContext {
         let include_option_cstr = CString::new(include_option).unwrap();
         // needed for rocWMMA extension to compile
         let cpp_std_option_cstr = CString::new("--std=c++17").unwrap();
-        let mut options: Vec<*const i8> =
+        let mut options: Vec<_> =
             vec![cpp_std_option_cstr.as_ptr(), include_option_cstr.as_ptr()];
         unsafe {
             let options_ptr = options.as_mut_ptr();
@@ -363,7 +365,7 @@ impl HipContext {
                     status, hiprtcResult_HIPRTC_SUCCESS,
                     "Should retrieve the compilation log size"
                 );
-                let mut log_buffer = vec![0i8; log_size];
+                let mut log_buffer = vec![0; log_size];
                 let status = cubecl_hip_sys::hiprtcGetProgramLog(program, log_buffer.as_mut_ptr());
                 assert_eq!(
                     status, hiprtcResult_HIPRTC_SUCCESS,
@@ -396,7 +398,7 @@ impl HipContext {
                 "Should get size of compiled code"
             );
         }
-        let mut code = vec![0i8; code_size];
+        let mut code = vec![0; code_size];
         unsafe {
             let status = cubecl_hip_sys::hiprtcGetCode(program, code.as_mut_ptr());
             assert_eq!(

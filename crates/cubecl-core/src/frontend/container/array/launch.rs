@@ -51,7 +51,7 @@ impl<C: CubePrimitive> LaunchArgExpand for Array<C> {
     }
 }
 
-struct RawResource<S: ComputeStorage>(S::Resource);
+pub struct RawResource<S: ComputeStorage>(S::Resource);
 
 unsafe impl<S: ComputeStorage> Send for RawResource<S> {}
 unsafe impl<S: ComputeStorage> Sync for RawResource<S> {}

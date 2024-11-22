@@ -10,7 +10,7 @@ use crate::{
 use crate::{Kernel, Runtime};
 use bytemuck::NoUninit;
 use cubecl_runtime::client::ComputeClient;
-use cubecl_runtime::server::{Binding, CubeCount};
+use cubecl_runtime::server::{Binding, CubeCount, Parameter};
 
 /// Prepare a kernel for [launch](KernelLauncher::launch).
 pub struct KernelLauncher<R: Runtime> {
@@ -122,7 +122,7 @@ impl<R: Runtime> KernelLauncher<R> {
         kernel: K,
         client: &ComputeClient<R::Server, R::Channel>,
     ) {
-        let bindings = self.into_bindings(client);
+        let bindings = self.into_bindings(client).into_iter().map(Parameter::Bound).collect();
 
         let kernel = Box::new(KernelTask::<R::Compiler, K>::new(kernel));
 
@@ -140,7 +140,7 @@ impl<R: Runtime> KernelLauncher<R> {
         kernel: K,
         client: &ComputeClient<R::Server, R::Channel>,
     ) {
-        let bindings = self.into_bindings(client);
+        let bindings = self.into_bindings(client).into_iter().map(Parameter::Bound).collect();
 
         let kernel = Box::new(KernelTask::<R::Compiler, K>::new(kernel));
 

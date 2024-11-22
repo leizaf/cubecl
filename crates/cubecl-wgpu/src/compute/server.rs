@@ -8,7 +8,7 @@ use crate::compiler::base::WgpuCompiler;
 use crate::timestamps::KernelTimestamps;
 use alloc::sync::Arc;
 use cubecl_common::future;
-use cubecl_core::{compute::DebugInformation, prelude::*, server::Handle, Feature, KernelId};
+use cubecl_core::{compute::DebugInformation, prelude::*, server::{Handle, Parameter}, Feature, KernelId};
 use cubecl_runtime::{
     debug::{DebugLogger, ProfileLevel},
     memory_management::{MemoryHandle, MemoryLock, MemoryManagement},
@@ -194,7 +194,7 @@ impl<C: WgpuCompiler> ComputeServer for WgpuServer<C> {
         &mut self,
         kernel: Self::Kernel,
         count: CubeCount,
-        bindings: Vec<server::Binding>,
+        params: Vec<Parameter<WgpuStorage>>,
         mode: ExecutionMode,
     ) {
         // Check for any profiling work to be done before execution.
@@ -221,9 +221,9 @@ impl<C: WgpuCompiler> ComputeServer for WgpuServer<C> {
 
         // Store all the resources we'll be using. This could be eliminated if
         // there was a way to tie the lifetime of the resource to the memory handle.
-        let resources: Vec<_> = bindings
+        let resources: Vec<_> = params
             .iter()
-            .map(|binding| self.get_resource(binding.clone()).into_resource())
+            .map(|binding| unimplemented!())
             .collect();
 
         // First resolve the dispatch buffer if needed. The weird ordering is because the lifetime of this

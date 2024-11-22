@@ -4,7 +4,7 @@ use crate::ir::Elem;
 use crate::pod::CubeElement;
 use crate::{calculate_cube_count_elemwise, CubeDim, Kernel, Runtime};
 use cubecl_runtime::client::ComputeClient;
-use cubecl_runtime::server::{Binding, CubeCount, Handle};
+use cubecl_runtime::server::{Binding, CubeCount, Handle, Parameter};
 
 /// The position of the input or output to calculate the number of cubes to launch.
 pub enum CubeCountSettings {
@@ -13,7 +13,7 @@ pub enum CubeCountSettings {
     Custom(CubeCount),
 }
 
-pub struct Execution<'h, K, R: Runtime, Scalars> {
+struct Execution<'h, K, R: Runtime, Scalars> {
     scalars: Scalars,
     client: ComputeClient<R::Server, R::Channel>,
     kernel: K,
@@ -214,8 +214,12 @@ fn execute_dynamic<R, K, E1, E2, E3>(
         handles.push(handle.binding());
     }
 
+    let params: Vec<_> = handles
+        .into_iter()
+        .map(Parameter::Bound)
+        .collect();
     let kernel = Box::new(KernelTask::<R::Compiler, K>::new(kernel));
-    client.execute(kernel, settings.cube_count, handles);
+    client.execute(kernel, settings.cube_count, params);
 }
 
 struct ExecuteSettings {
