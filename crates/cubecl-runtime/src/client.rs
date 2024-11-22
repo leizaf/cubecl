@@ -3,7 +3,7 @@ use core::future::Future;
 use crate::{
     channel::ComputeChannel,
     memory_management::MemoryUsage,
-    server::{Binding, ComputeServer, CubeCount, Handle},
+    server::{Binding, ComputeServer, CubeCount, Handle, Parameter},
     storage::BindingResource,
     DeviceProperties, ExecutionMode,
 };
@@ -95,10 +95,15 @@ where
     }
 
     /// Executes the `kernel` over the given `bindings`.
-    pub fn execute(&self, kernel: Server::Kernel, count: CubeCount, bindings: Vec<Binding>) {
+    pub fn execute(
+        &self,
+        kernel: Server::Kernel,
+        count: CubeCount,
+        params: Vec<Parameter<Server::Storage>>,
+    ) {
         unsafe {
             self.channel
-                .execute(kernel, count, bindings, ExecutionMode::Checked)
+                .execute(kernel, count, params, ExecutionMode::Checked)
         }
     }
 
@@ -111,10 +116,10 @@ where
         &self,
         kernel: Server::Kernel,
         count: CubeCount,
-        bindings: Vec<Binding>,
+        params: Vec<Parameter<Server::Storage>>,
     ) {
         self.channel
-            .execute(kernel, count, bindings, ExecutionMode::Unchecked)
+            .execute(kernel, count, params, ExecutionMode::Unchecked)
     }
 
     /// Flush all outstanding commands.

@@ -1,5 +1,7 @@
 use std::{marker::PhantomData, num::NonZero};
 
+use cubecl_runtime::{server::ComputeServer, storage::ComputeStorage};
+
 use crate::{
     compute::{KernelBuilder, KernelLauncher},
     ir::{Item, Vectorization},
@@ -49,6 +51,11 @@ impl<C: CubePrimitive> LaunchArgExpand for Array<C> {
     }
 }
 
+struct RawResource<S: ComputeStorage>(S::Resource);
+
+unsafe impl<S: ComputeStorage> Send for RawResource<S> {}
+unsafe impl<S: ComputeStorage> Sync for RawResource<S> {}
+
 pub enum ArrayArg<'a, R: Runtime> {
     /// The array is passed with an array handle.
     Handle {
@@ -62,6 +69,8 @@ pub enum ArrayArg<'a, R: Runtime> {
         /// The position of the input array.
         input_pos: usize,
     },
+    /// The
+    Resource(RawResource<<R::Server as ComputeServer>::Storage>),
 }
 
 impl<'a, R: Runtime> ArgSettings<R> for ArrayArg<'a, R> {
@@ -102,6 +111,17 @@ impl<'a, R: Runtime> ArrayArg<'a, R> {
             handle: ArrayHandleRef::from_raw_parts(handle, length, elem_size),
             vectorization_factor,
         }
+    }
+
+    /// Create an array from the corresponding Resource type of the Runtime.
+    ///
+    /// # Safety
+    ///
+    /// Highly unsafe as the caller has to ensure the resource is valid and is not aliased.
+    pub unsafe fn from_raw_resource(
+        resource: RawResource<<R::Server as ComputeServer>::Storage>,
+    ) -> Self {
+        ArrayArg::Resource(resource)
     }
 }
 
@@ -154,6 +174,7 @@ impl<C: CubePrimitive> LaunchArg for Array<C> {
                 inplace: Some(*input_pos as u16),
                 vectorisation: Vectorization::None,
             },
+            ArrayArg::Resource(_) => unimplemented!(),
         }
     }
 }

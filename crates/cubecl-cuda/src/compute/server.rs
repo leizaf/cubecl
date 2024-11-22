@@ -3,14 +3,14 @@ use cubecl_cpp::{formatter::format_cpp, CudaCompiler};
 
 use super::fence::{Fence, SyncStream};
 use super::storage::CudaStorage;
-use super::{uninit_vec, CudaResource};
+use super::{uninit_vec, Binding, CudaResource};
 use cubecl_core::compute::DebugInformation;
 use cubecl_core::ir::CubeDim;
 use cubecl_core::Feature;
 use cubecl_core::{prelude::*, KernelId};
 use cubecl_runtime::debug::{DebugLogger, ProfileLevel};
 use cubecl_runtime::memory_management::MemoryUsage;
-use cubecl_runtime::storage::BindingResource;
+use cubecl_runtime::storage::{self, BindingResource};
 use cubecl_runtime::{
     memory_management::MemoryManagement,
     server::{self, ComputeServer},
@@ -177,7 +177,7 @@ impl ComputeServer for CudaServer {
         &mut self,
         kernel: Self::Kernel,
         count: CubeCount,
-        bindings: Vec<server::Binding>,
+        params: Vec<server::Parameter<CudaStorage>>,
         mode: ExecutionMode,
     ) {
         let mut kernel_id = kernel.id();
@@ -212,14 +212,15 @@ impl ComputeServer for CudaServer {
             ctx.compile_kernel(&kernel_id, kernel, logger, mode);
         }
 
-        let resources = bindings
+        let resources = params
             .into_iter()
-            .map(|binding| {
-                ctx.memory_management.get_resource(
+            .map(|param| match param {
+                server::Parameter::Bound(binding) => ctx.memory_management.get_resource(
                     binding.memory,
                     binding.offset_start,
                     binding.offset_end,
-                )
+                ),
+                server::Parameter::Raw(r) => r,
             })
             .collect::<Vec<_>>();
 

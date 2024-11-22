@@ -2,7 +2,7 @@ use core::future::Future;
 use cubecl_common::benchmark::TimestampsResult;
 
 use crate::{
-    server::{Binding, ComputeServer, CubeCount, Handle},
+    server::{Binding, ComputeServer, CubeCount, Handle, Parameter},
     storage::BindingResource,
     ExecutionMode,
 };
@@ -32,7 +32,7 @@ pub trait ComputeChannel<Server: ComputeServer>: Clone + core::fmt::Debug + Send
         &self,
         kernel: Server::Kernel,
         count: CubeCount,
-        bindings: Vec<Binding>,
+        params: Vec<Parameter<Server::Storage>>,
         mode: ExecutionMode,
     );
 

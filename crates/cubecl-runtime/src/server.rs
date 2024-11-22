@@ -52,7 +52,7 @@ where
         &mut self,
         kernel: Self::Kernel,
         count: CubeCount,
-        bindings: Vec<Binding>,
+        params: Vec<Parameter<Self::Storage>>,
         kind: ExecutionMode,
     );
 
@@ -116,6 +116,14 @@ impl Handle {
     pub fn size(&self) -> u64 {
         self.size - self.offset_start.unwrap_or(0) - self.offset_end.unwrap_or(0)
     }
+}
+
+/// An input or output a kernel can perform computations on/with.
+pub enum Parameter<S: ComputeStorage> {
+    /// A kernel paramter owned and managed by the runtime.
+    Bound(Binding),
+    /// Some resource that exists on the device.
+    Raw(S::Resource),
 }
 
 /// Binding of a [tensor handle](Handle) to execute a kernel.

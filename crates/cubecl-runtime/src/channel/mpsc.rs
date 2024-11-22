@@ -5,7 +5,7 @@ use cubecl_common::benchmark::TimestampsResult;
 use super::ComputeChannel;
 use crate::{
     memory_management::MemoryUsage,
-    server::{Binding, ComputeServer, CubeCount, Handle},
+    server::{Binding, ComputeServer, CubeCount, Handle, Parameter},
     storage::BindingResource,
     ExecutionMode,
 };
@@ -39,7 +39,10 @@ where
     GetResource(Binding, Callback<BindingResource<Server>>),
     Create(Vec<u8>, Callback<Handle>),
     Empty(usize, Callback<Handle>),
-    ExecuteKernel((Server::Kernel, CubeCount, ExecutionMode), Vec<Binding>),
+    ExecuteKernel(
+        (Server::Kernel, CubeCount, ExecutionMode),
+        Vec<Parameter<Server::Storage>>,
+    ),
     Flush,
     SyncElapsed(Callback<TimestampsResult>),
     Sync(Callback<()>),
@@ -78,8 +81,8 @@ where
                             let handle = server.empty(size);
                             callback.send(handle).await.unwrap();
                         }
-                        Message::ExecuteKernel(kernel, bindings) => unsafe {
-                            server.execute(kernel.0, kernel.1, bindings, kernel.2);
+                        Message::ExecuteKernel(kernel, params) => unsafe {
+                            server.execute(kernel.0, kernel.1, params, kernel.2);
                         },
                         Message::SyncElapsed(callback) => {
                             let duration = server.sync_elapsed().await;
@@ -170,12 +173,12 @@ where
         &self,
         kernel: Server::Kernel,
         count: CubeCount,
-        bindings: Vec<Binding>,
+        params: Vec<Parameter<Server::Storage>>,
         kind: ExecutionMode,
     ) {
         self.state
             .sender
-            .send_blocking(Message::ExecuteKernel((kernel, count, kind), bindings))
+            .send_blocking(Message::ExecuteKernel((kernel, count, kind), params))
             .unwrap()
     }
 

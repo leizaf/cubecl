@@ -277,6 +277,7 @@ impl<R: Runtime> TensorState<R> {
                 ..
             } => (handle, vectorization_factor),
             ArrayArg::Alias { .. } => return,
+            ArrayArg::Resource(_) => unimplemented!(),
         };
 
         if let TensorState::Empty = self {
